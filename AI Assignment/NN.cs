@@ -423,7 +423,7 @@ namespace AI_Assignment
                         outString = outString + 0;
                     }
                 }
-                Console.WriteLine(outString);   //Print the string
+                Console.WriteLine(outString);
             }
         }
 
