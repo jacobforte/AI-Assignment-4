@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<root>
+  <numberOfStates>4</numberOfStates>
+  <numberOfEmmissions>4</numberOfEmmissions>
+  <emmissionMatrix>
+    <signal name="1">
+      <state name="1">0.6</state>
+      <state name="2">0.2</state>
+      <state name="3">0.0</state>
+      <state name="4">0.2</state>
+    </signal>
+    <signal name="2">
+      <state name="1">0.4</state>
+      <state name="2">0.2</state>
+      <state name="3">0.0</state>
+      <state name="4">0.4</state>
+    </signal>
+    <signal name="3">
+      <state name="1">0.0</state>
+      <state name="2">0.6</state>
+      <state name="3">0.2</state>
+      <state name="4">0.2</state>
+    </signal>
+    <signal name="4">
+      <state name="1">0.0</state>
+      <state name="2">0.0</state>
+      <state name="3">0.8</state>
+      <state name="4">0.2</state>
+    </signal>
+  </emmissionMatrix>
+  
+  <transitionMatrix>
+    <fromState name="1">
+      <toState name="1">0.2</toState>
+      <toState name="2">0.7</toState>
+      <toState name="3">0.0</toState>
+      <toState name="4">0.1</toState>
+    </fromState>
+    <fromState name="2">
+      <toState name="1">0.0</toState>
+      <toState name="2">0.0</toState>
+      <toState name="3">0.7</toState>
+      <toState name="4">0.3</toState>
+    </fromState>
+    <fromState name="3">
+      <toState name="1">0.7</toState>
+      <toState name="2">0.3</toState>
+      <toState name="3">0.0</toState>
+      <toState name="4">0.0</toState>
+    </fromState>
+    <fromState name="4">
+      <toState name="1">0.0</toState>
+      <toState name="2">0.5</toState>
+      <toState name="3">0.5</toState>
+      <toState name="4">0.0</toState>
+    </fromState>
+  </transitionMatrix>
+</root>

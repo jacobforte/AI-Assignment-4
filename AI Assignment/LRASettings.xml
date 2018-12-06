@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<root>
+  <width>8</width>
+  <height>16</height>
+  <nodes>
+    <node x="1" y="3"/>
+    <node x="2" y="7"/>
+    <node x="3" y="5"/>
+    <node x="4" y="9"/>
+    <node x="5" y="11"/>
+    <node x="6" y="12"/>
+    <node x="7" y="15"/>
+  </nodes>
+</root>

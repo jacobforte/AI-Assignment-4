@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<root>
+  <NumberOfNodes>20</NumberOfNodes>
+  <NumberOfCentroids>3</NumberOfCentroids>
+  <Width>10</Width>
+  <Height>10</Height>
+</root>

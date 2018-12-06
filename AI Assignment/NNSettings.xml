@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<root>
+  <threshold>0.5</threshold>
+  <input>
+    <ouput>0.6</ouput>
+    <ouput>0.6</ouput>
+    <ouput>0.6</ouput>
+  </input>
+  <input>
+    <ouput>0.6</ouput>
+    <ouput>0.6</ouput>
+    <ouput>0.6</ouput>
+  </input>
+  <input>
+    <ouput>0.6</ouput>
+    <ouput>0.6</ouput>
+    <ouput>0.6</ouput>
+  </input>
+  <input>
+    <ouput>0.6</ouput>
+    <ouput>0.6</ouput>
+    <ouput>0.6</ouput>
+  </input>
+</root>
