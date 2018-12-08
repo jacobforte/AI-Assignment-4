@@ -22,11 +22,13 @@ namespace AI_Assignment
             private int numberOfCentroids;
             private int width;
             private int height;
+            private int threshold;
 
             public int NumberOfNodes { get { return numberOfNodes; } }
             public int NumberOfCentroids { get { return numberOfCentroids; } }
             public int Width { get { return width; } }
             public int Height { get { return height; } }
+            public int Threshold { get { return threshold; } }
 
             public XmlData()
             {
@@ -38,6 +40,7 @@ namespace AI_Assignment
                     numberOfCentroids = Convert.ToInt32(doc.SelectSingleNode("/root/NumberOfCentroids").InnerText);
                     width = Convert.ToInt32(doc.SelectSingleNode("/root/Width").InnerText);
                     height = Convert.ToInt32(doc.SelectSingleNode("/root/Height").InnerText);
+                    threshold = Convert.ToInt32(doc.SelectSingleNode("/root/Threshold").InnerText);
                 }
                 catch
                 {
@@ -65,20 +68,33 @@ namespace AI_Assignment
             }
 
             //Used to find the centroid this node belongs to
-            public void AssignCentroid(Centroid newCentroid)
+            public void AssignCentroid(List<Centroid> newCentroids)
             {
-                if (centroid == null)
+                centroid = null;
+                double distanceToAssignedCentroid = 10000;
+
+                //Loop through all centroids
+                foreach (Centroid NewCentroid in newCentroids)
                 {
-                    //This node is not assigned to a centroid, assign it to one
-                    centroid = newCentroid;
-                    centroid.nodes.Add(this);
-                }
-                else if (Math.Sqrt(Math.Pow(newCentroid.Xpos - xpos, 2) + Math.Pow(newCentroid.Ypos - ypos, 2)) < Math.Sqrt(Math.Pow(centroid.Xpos - xpos, 2) + Math.Pow(centroid.Ypos - ypos, 2)))
-                {
-                    //The new centroid is closer than the old centroid, remove this node from old and assign to new
-                    centroid.nodes.Remove(this);
-                    centroid = newCentroid;
-                    centroid.nodes.Add(this);
+                    //calculate distance to new centrodi
+                    double distanceToNewCentroid = Math.Sqrt(Math.Pow(NewCentroid.Xpos - xpos, 2) + Math.Pow(NewCentroid.Ypos - ypos, 2));
+
+                    if (centroid == null && distanceToNewCentroid <= Globals.XmlData.Threshold)
+                    {
+                        //This node is not assigned to a centroid, assign it to one if is within the threshold
+                        centroid = NewCentroid;
+                        centroid.nodes.Add(this);
+                        //keep track of distance to assigned centroid
+                        distanceToAssignedCentroid = Math.Sqrt(Math.Pow(centroid.Xpos - xpos, 2) + Math.Pow(centroid.Ypos - ypos, 2));
+                    }
+                    else if (centroid != null && distanceToNewCentroid <= distanceToAssignedCentroid && distanceToNewCentroid <= Globals.XmlData.Threshold)
+                    {
+                        //The new centroid is closer than the old centroid, remove this node from old and assign to new
+                        centroid.nodes.Remove(this);
+                        centroid = NewCentroid;
+                        centroid.nodes.Add(this);
+                        distanceToAssignedCentroid = Math.Sqrt(Math.Pow(centroid.Xpos - xpos, 2) + Math.Pow(centroid.Ypos - ypos, 2));
+                    }
                 }
             }
         }
@@ -173,17 +189,15 @@ namespace AI_Assignment
                 bool changed = true;
                 while (changed)
                 {
-                    Print();
                     changed = false;
 
                     //Calculate centroid that every node belongs to
                     foreach (Node node in nodes)
                     {
-                        foreach (Centroid centroid in centroids)
-                        {
-                            node.AssignCentroid(centroid);
-                        }
+                        node.AssignCentroid(centroids);
                     }
+
+                    Print();    //Print before repositioning the centroids
 
                     //Reposition the centroids. As soon as changed = true, we will need another round
                     foreach (Centroid centroid in centroids)
@@ -197,7 +211,18 @@ namespace AI_Assignment
                             centroid.Reposition();
                         }
                     }
+
+                    //We will need to recalculate distances, remove nodes from centroid lists so we can start over
+                    if (changed)    //If nothing changed, skip this step
+                    {
+                        foreach (Centroid centroid in centroids)
+                        {
+                            centroid.nodes = new List<Node>();
+                        }
+                    }
                 }
+
+                Print();    //Print the final result
             }
             
             public void Print()
@@ -214,7 +239,7 @@ namespace AI_Assignment
                 }
 
                 //Print free nodes
-                Console.WriteLine("The free nodes are:");
+                Console.WriteLine("The outlier nodes are:");
                 foreach (Node node in nodes)
                 {
                     bool isFreeNode = true;

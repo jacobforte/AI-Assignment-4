@@ -1,24 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <root>
-  <threshold>0.5</threshold>
-  <input>
-    <ouput>0.6</ouput>
-    <ouput>0.6</ouput>
-    <ouput>0.6</ouput>
-  </input>
-  <input>
-    <ouput>0.6</ouput>
-    <ouput>0.6</ouput>
-    <ouput>0.6</ouput>
-  </input>
-  <input>
-    <ouput>0.6</ouput>
-    <ouput>0.6</ouput>
-    <ouput>0.6</ouput>
-  </input>
-  <input>
-    <ouput>0.6</ouput>
-    <ouput>0.6</ouput>
-    <ouput>0.6</ouput>
-  </input>
+  <threshold>0.4</threshold>
+  <bias>0.3</bias>
+  <inputs>4</inputs>
+  <outputs>5</outputs>
+  <layers>3</layers>
+  <trainingIterations>30</trainingIterations>
 </root>

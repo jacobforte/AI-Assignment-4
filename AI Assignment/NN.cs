@@ -20,10 +20,18 @@ namespace AI_Assignment
         {
             private XmlDocument doc;
             private double threshold;
-            private double[,] neuralNetwokWeights = new double[4, 3];
+            private double bias;
+            private int inputs;
+            private int outputs;
+            private int layers;
+            private int trainingIterations;
 
             public double Threshold { get { return threshold; } }
-            public double[,] NeuralNetwokWeights { get { return neuralNetwokWeights; } }
+            public double Bias { get { return bias; } }
+            public int Inputs { get { return inputs; } }
+            public int Outputs { get { return outputs; } }
+            public int Layers { get { return layers; } }
+            public int TrainingIterations { get { return trainingIterations; } }
 
             public XmlData()
             {
@@ -31,22 +39,12 @@ namespace AI_Assignment
                 doc.Load("NNSettings.xml");
                 try
                 {
-                    int inputCount = 0;
-                    int outputCount = 0;
-
-                    //If we needed more layers, this would be a 3d array
                     threshold = Convert.ToDouble(doc.SelectSingleNode("/root/threshold").InnerText);
-                    foreach (XmlNode input in doc.SelectNodes("/root/input"))
-                    {
-                        foreach (XmlNode output in input.ChildNodes)
-                        {
-                            neuralNetwokWeights[inputCount, outputCount] = Convert.ToDouble(output.InnerText);
-                            outputCount++;
-                        }
-                        outputCount = 0;
-                        inputCount++;
-                    }
-                    inputCount = 0;
+                    bias = Convert.ToDouble(doc.SelectSingleNode("/root/bias").InnerText);
+                    inputs = Convert.ToInt32(doc.SelectSingleNode("/root/inputs").InnerText);
+                    outputs = Convert.ToInt32(doc.SelectSingleNode("/root/outputs").InnerText);
+                    layers = Convert.ToInt32(doc.SelectSingleNode("/root/layers").InnerText);
+                    trainingIterations = Convert.ToInt32(doc.SelectSingleNode("/root/trainingIterations").InnerText);
                 }
                 catch
                 {
@@ -55,77 +53,101 @@ namespace AI_Assignment
                     Environment.Exit(0);
                 }
             }
-
-            public void PrintWeights()
-            {
-                //DEBUGING Use this to show all weights
-                foreach (double weight in neuralNetwokWeights)
-                {
-                    Console.WriteLine(weight + " ");
-                }
-                Console.ReadLine();
-            }
         }
 
         //Contains one set of inputs and expected outputs each
         private class NeuralData
         {
             public List<int> Input;
-            public List<int> ExpectedOutput;
+            public List<int> TargetOutput;
+            public List<double> ActualOutput;
+            public double Error;
 
             public NeuralData()
             {
                 Input = new List<int>();
-                ExpectedOutput = new List<int>();
+                TargetOutput = new List<int>();
+                ActualOutput = new List<double>();
             }
 
-            //Add all inputs
-            public void AddInputs(List<int> inputs)
+            public double CalculateError()
             {
-                Input = inputs;
+                Error = 0;
+                int i;
+                for (i = 0; i < TargetOutput.Count; i++)
+                {
+                    Error += Math.Pow(ActualOutput[i] - TargetOutput[i], 2);
+                }
+                return Error = Error / i;
             }
 
-            //Add all outputs
-            public void AddExpectedOutputs(List<int> outputs)
+            public void PrintInput()
             {
-                ExpectedOutput = outputs;
+                string print = "Input: ";
+                foreach (int i in Input)
+                {
+                    print += i;
+                }
+                Console.WriteLine(print);
+            }
+
+            public void PrintTarget()
+            {
+                string print = "Target output: ";
+                foreach (int i in TargetOutput)
+                {
+                    print += i;
+                }
+                Console.WriteLine(print);
+            }
+
+            public void PrintActual()
+            {
+                string print = "Actual output: ";
+                foreach (double i in ActualOutput)
+                {
+                    print += Math.Round(i, 3) + " ";
+                }
+                Console.WriteLine(print);
             }
         }
 
-        //Contains data for the input of a neuron
-        private class WeightedInput
+        //Contains the weight of a conection and the neuron that feeds the value for the conection.
+        private class Conection
         {
-            public double inputValue;
+            public Neuron ConectedFrom; //The neuron that the conection gets it's output value from.
             public double weight;
         }
 
-        //Contains data for each neuron
         private class Neuron
         {
-            //Contains a list of input to this neuron and their weights
-            public List<WeightedInput> WeightedInputs;
-            //Each neuron only has one ouput value
+            public List<Conection> Conections;
             public double Output;
-            //Used to influence the weights of the inputs
+            public int NeuronNumber;    //Used to track it's position in a layer
 
-            public Neuron()
+            public Neuron(int number)
             {
-                WeightedInputs = new List<WeightedInput>();
+                Conections = new List<Conection>();
+                NeuronNumber = number;
             }
 
-            //This calculates the neurons output value, compares it to the threshold, then sets output to one or zero.
+            //This calculates the neurons output value, compares it to the threshold, then sets output to either the calculated value or zero.
             public void Fire()
             {
-                double value = 0.0f;
-                foreach (WeightedInput input in WeightedInputs)
+                Output = 0;
+                foreach (Conection conection in Conections)
                 {
-                    value += input.inputValue * input.weight;
+                    if (conection.ConectedFrom.Output > 0)
+                    {
+                        Output += conection.ConectedFrom.Output * conection.weight;
+                    }
                 }
+                Output += Globals.XmlData.Bias;
 
-                //If the value is grather than the threshold the neuron fires
-                if (value >= Globals.XmlData.Threshold)
+                //If the value is greater than the threshold, the neuron fires. Else it outputs 0
+                if (Output >= Globals.XmlData.Threshold)
                 {
-                    Output = value;
+                    Output = 1/(1 + Math.Exp(Output));
                 }
                 else
                 {
@@ -134,48 +156,76 @@ namespace AI_Assignment
             }
 
             //Adjust the weights of the inputs
-            public void AdjustWeights(double rate, int delta)
+            public void AdjustWeights(NeuralNetwork neuralNetwork, int targetOutput, NeuralData neuralData, double learningRate)
             {
-                //Loop through each connection
-                foreach (WeightedInput input in WeightedInputs)
+                double initialError = neuralData.Error;     //Store the initial Error
+                Queue<double> initialWeights = new Queue<double>();
+                GetWeights(initialWeights);
+
+                int count = 10;
+                while (neuralData.Error >= initialError)
                 {
-                    switch (delta)
-                    {
-                        case 1: //input = 0
-                            if (input.inputValue == 0) //the link is good, raise weight
-                            {
-                                input.weight += rate;
-                            }
-                            else    //the link is bad, lower weight
-                            {
-                                input.weight -= rate;
-                            }
-                            break;
-                        case -1:    //input = 1
-                            if (input.inputValue == 1) //the link is good, raise weight
-                            {
-                                input.weight += rate;
-                            }
-                            else    //the link is bad, lower weight
-                            {
-                                input.weight -= rate;
-                            }
-                            break;
-                        case 0: //input = output
-                            if (input.inputValue != this.Output)    //the link is bad, lower weight
-                            {
-                                input.weight -= rate;
-                            }
-                            else
-                            {
-                                input.weight += rate;
-                            }
-                            break;
-                        default:
-                            break;
+                    foreach (Conection conection in Conections)
+                    {   //Loop through every conection
+                        if ((conection.ConectedFrom.Output > 0 && targetOutput == 0))
+                        {   //If the conected neuron fired and we wanted the neuron to not fire
+                            conection.weight -= learningRate;
+                            conection.ConectedFrom.AdjustWeights(targetOutput, learningRate);
+                        }
+                        else if ((conection.ConectedFrom.Output) == 0 && targetOutput == 1)
+                        {   //If the conected neuron didn't fire and we wanted it to fire.
+                            conection.weight += learningRate;
+                            conection.ConectedFrom.AdjustWeights(targetOutput, learningRate);
+                        }
+                        neuralData = neuralNetwork.CalculateOutputs(neuralData);
+                        neuralData.CalculateError();
+                        if (neuralData.Error < initialError) { return; }
                     }
-                    //if (input.weight > 1) { input.weight = 1; }
-                    //else if (input.weight < 0) { input.weight = 0; }
+                    count--;
+                    if (count < 0)
+                    {
+                        //we were unable to improve the error, we must fix the weights
+                        SetWeights(initialWeights);
+                        neuralNetwork.CalculateOutputs(neuralData);
+                        neuralData.CalculateError();
+                        break;
+                    }
+                }
+            }
+
+            private Queue<double> GetWeights(Queue<double> queue)
+            {
+                foreach (Conection conection in Conections)
+                {
+                    queue.Enqueue(conection.weight);
+                    queue = conection.ConectedFrom.GetWeights(queue);
+                }
+                return queue;
+            }
+
+            private Queue<double> SetWeights(Queue<double> queue)
+            {
+                foreach (Conection conection in Conections)
+                {
+                    conection.weight = queue.Dequeue();
+                    queue = conection.ConectedFrom.SetWeights(queue);
+                }
+                return queue;
+            }
+
+            private void AdjustWeights(int targetOutput, double learningRate)
+            {   //Input nodes don't have conection. No need to handel them
+                foreach (Conection conection in Conections)
+                {   //Loop through every conection
+                    if ((conection.ConectedFrom.Output > 0 && targetOutput == 0))
+                    {   //If the conected neuron fired and we wanted the neuron to not fire
+                        conection.weight -= learningRate;
+                    }
+                    else if ((conection.ConectedFrom.Output) == 0 && targetOutput == 1)
+                    {   //If the conected neuron didn't fire and we wanted it to fire.
+                        conection.weight += learningRate;
+                    }
+                    conection.ConectedFrom.AdjustWeights(targetOutput, learningRate);
                 }
             }
         }
@@ -187,14 +237,13 @@ namespace AI_Assignment
             public List<Neuron> Neurons;
             public int LayerNumber;
 
-            //Initalize the layer
             public NeuralLayer(int numberOfNeurons, int layerNumber)
             {
                 //Add as many neuons as needed
                 Neurons = new List<Neuron>();
                 for (int i = 0; i < numberOfNeurons; i++)
                 {
-                    Neurons.Add(new Neuron());
+                    Neurons.Add(new Neuron(i));
                 }
 
                 //Set the layer number, 0 is the input layer, 1 is the output layer
@@ -224,246 +273,186 @@ namespace AI_Assignment
             //Connect all of the layers in the neural network, the netwok must have layers for this to work
             public void BuildNetwork()
             {
-                int i = 0;
+                //Break if only 1 or 0 layers
+                if (NeuralLayers.Count < 2)
+                {
+                    Console.WriteLine("Not enough layers.");
+                    return;
+                }
+
+                //Conects each layer to the next layer
                 foreach (NeuralLayer neuralLayer in NeuralLayers)
                 {
                     //The last layer doesn't connect to anything, break
-                    if (i >= NeuralLayers.Count - 1)
+                    if (neuralLayer == NeuralLayers.Last())
                     {
                         break;
                     }
 
-                    //Connect all neurons in the current layer to all the neurons in the next layer
-                    NeuralLayer nextLayer = NeuralLayers[i + 1];
-                    int inputCount = 0;
-                    int outputCount = 0;
-                    foreach (Neuron ToNeuron in nextLayer.Neurons)
+                    //Fetch the next layer to connect to
+                    NeuralLayer nextLayer = NeuralLayers[neuralLayer.LayerNumber + 1];
+                    Random rand = new Random();
+                    //Loop through all nodes from both layers and try to conect them
+                    foreach (Neuron fromNeuron in neuralLayer.Neurons)
                     {
-                        for (int j = 0; j < neuralLayer.Neurons.Count; j++)
+                        foreach (Neuron toNeuron in nextLayer.Neurons)
                         {
-                            //Make the initial connection between current input neuron and current output neuron
-                            ToNeuron.WeightedInputs.Add(new WeightedInput()
+                            //Neurons with the same number will allways conect
+                            if (fromNeuron.NeuronNumber == toNeuron.NeuronNumber)
                             {
-                                inputValue = neuralLayer.Neurons[j].Output,
-                                weight = Globals.XmlData.NeuralNetwokWeights[inputCount, outputCount]   //Get weights from the XML file
-                            });
-                            inputCount++;
-                        }
-                        inputCount = 0;
-                        outputCount++;
-                    }
-                    i++;
-                }
-            }
-
-            //This function will train the neural network
-            //The expected output will follow the following rules
-            //1 and 2 = true, 1 = true
-            //2 and 3 = true, 2 = true
-            //3 and 4 = true, 3 = true
-            public void Train(int iterations, double learningRate)
-            {
-                //Generate 100 training datas
-                List<NeuralData> neuralDatas = new List<NeuralData>();
-                Random rnd = new Random();  //Used to generate random numbers. Seeded from system clock.
-                for (int i = 0; i < iterations; i++)
-                {
-                    neuralDatas.Add(new NeuralData());
-                    List<int> inputs = new List<int>();
-                    List<int> outputs = new List<int>();
-
-                    //Randomly generate the inputs
-                    for (int j = 0; j < 4; j++) //The problem specificly asks for 4 inputs
-                    {
-                        inputs.Add(rnd.Next(0, 2)); //Upper bound is exclusive
-                    }
-                    neuralDatas[i].AddInputs(inputs);
-
-                    //Calculate the expected outputs
-                    if (neuralDatas[i].Input[0] == 1 && neuralDatas[i].Input[1] == 1)
-                    {
-                        outputs.Add(1);
-                    }
-                    else
-                    {
-                        outputs.Add(0);
-                    }
-                    if (neuralDatas[i].Input[1] == 1 && neuralDatas[i].Input[2] == 1)
-                    {
-                        outputs.Add(1);
-                    }
-                    else
-                    {
-                        outputs.Add(0);
-                    }
-                    if (neuralDatas[i].Input[2] == 1 && neuralDatas[i].Input[3] == 1)
-                    {
-                        outputs.Add(1);
-                    }
-                    else
-                    {
-                        outputs.Add(0);
-                    }
-                    neuralDatas[i].AddExpectedOutputs(outputs);
-                }
-
-                //Loop through each generated input/output values (100)
-                for (int currentData = 0; currentData < neuralDatas.Count; currentData++)
-                {
-                    NeuralLayer inputLayer = NeuralLayers[0];
-                    List<double> actualOutputs = new List<double>();
-
-                    //Set the input data into the first layer
-                    for (int j = 0; j < neuralDatas[currentData].Input.Count; j++)
-                    {
-                        inputLayer.Neurons[j].Output = neuralDatas[currentData].Input[j];
-                    }
-
-                    //Calculate the outputs
-                    bool first = true;  //This skips the first layer, we alread have the outputs
-                    foreach (NeuralLayer layer in NeuralLayers)
-                    {
-                        if (first)
-                        {
-                            first = false;
-                        }
-                        else
-                        {
-                            //Set proper input values for the second
-                            for(int outNeuron = 0; outNeuron < inputLayer.Neurons.Count; outNeuron++)
-                            {
-                                for(int inNeuron = 0; inNeuron < layer.Neurons.Count; inNeuron++)
+                                toNeuron.Conections.Add(new Conection()
                                 {
-                                    layer.Neurons[inNeuron].WeightedInputs[outNeuron].inputValue = inputLayer.Neurons[outNeuron].Output;
-                                }
+                                    ConectedFrom = fromNeuron,
+                                    weight = rand.NextDouble() + 0.1
+                                });
                             }
-                            //This attempts to fire all nodes in the current layer,
-                            //Fireing nodes checks if the sum of the weighted inputs is larger than the threshold, then sets ouput to zero or one
-                            layer.FireNodes();
-                        }
-                    }
-
-                    //Set the calculated outputs to actualOutput
-                    foreach (Neuron neuron in NeuralLayers.Last().Neurons)  //for each neuron in output layer
-                    {
-                        if (neuron.Output > Globals.XmlData.Threshold)
-                        {
-                            actualOutputs.Add(1);
-                        }
-                        else
-                        {
-                            actualOutputs.Add(0);
-                        }
-                    }
-
-                    //Adjust each incorect node
-                    for (int i = 0; i < actualOutputs.Count; i++)
-                    {
-                        if (actualOutputs[i] > neuralDatas[currentData].ExpectedOutput[i]) //actual = 1, expected = 0
-                        {
-                            NeuralLayers.Last().Neurons[i].AdjustWeights(learningRate, 1);
-                        }
-                        else if (actualOutputs[i] < neuralDatas[currentData].ExpectedOutput[i]) //actual = 0, expected = 1
-                        {
-                            NeuralLayers.Last().Neurons[i].AdjustWeights(learningRate, -1);
-                        }
-                        else    //expect = actual
-                        {
-                            NeuralLayers.Last().Neurons[i].AdjustWeights(learningRate, 0);
+                            //Else, randomly assign conections, if the random number is zero, no conection
+                            else if (rand.Next(0, Globals.XmlData.Inputs) != 0)
+                            {
+                                toNeuron.Conections.Add(new Conection()
+                                {
+                                    ConectedFrom = fromNeuron,
+                                    weight = rand.NextDouble() + 0.1
+                                });
+                            }
+                            //We need to worry about neurons not having a conection if next layer has more nodes than current layer
+                            else if (toNeuron.NeuronNumber >= neuralLayer.Neurons.Count && fromNeuron == neuralLayer.Neurons.Last() && toNeuron.Conections.Count < 1)
+                            {
+                                toNeuron.Conections.Add(new Conection()
+                                {
+                                    ConectedFrom = fromNeuron,
+                                    weight = rand.NextDouble() + 0.1
+                                });
+                            }
                         }
                     }
                 }
             }
 
-            public void NormalInput(NeuralData data)
+            public void Train()
             {
-                NeuralLayer inputLayer = NeuralLayers[0];
-                List<int> actualOutputs = new List<int>();
+                Random rand = new Random();
 
-                //Set the input data into the first layer
-                for (int j = 0; j < data.Input.Count; j++)
+                for (int i = 0; i < Globals.XmlData.TrainingIterations; i++)
                 {
-                    inputLayer.Neurons[j].Output = data.Input[j];
-                }
+                    //Generate the input and target output
+                    NeuralData neuralData = GenerateTrainingData(rand);
 
-                //Calculate the outputs
-                bool first = true;  //This skips the first layer, we alread have the outputs
-                foreach (NeuralLayer layer in NeuralLayers)
-                {
-                    if (first)
+                    //Calculate the actual outputs from our generated inputs
+                    neuralData = CalculateOutputs(neuralData);
+
+                    //Calculate the error and print it
+                    double initialError = neuralData.CalculateError();
+                    neuralData.PrintInput();
+                    neuralData.PrintTarget();
+                    neuralData.PrintActual();
+                    Console.WriteLine("Initial error: {0}", Math.Round(initialError, 3));
+
+                    //Adjust the weights. If our error is zero, don't change anything
+                    if (initialError > 0)
                     {
-                        first = false;
-                    }
-                    else
-                    {
-                        //Set proper input values for the second
-                        for (int outNeuron = 0; outNeuron < inputLayer.Neurons.Count; outNeuron++)
+                        Console.WriteLine("Adjusting weights.");
+                        //loop through each output and compare actual to target
+                        for (int j = 0; j < neuralData.TargetOutput.Count; j++)
                         {
-                            for (int inNeuron = 0; inNeuron < layer.Neurons.Count; inNeuron++)
-                            {
-                                layer.Neurons[inNeuron].WeightedInputs[outNeuron].inputValue = inputLayer.Neurons[outNeuron].Output;
+                            if (neuralData.ActualOutput[j] != neuralData.TargetOutput[j])
+                            {   //Actual output does not match target output
+                                NeuralLayers.Last().Neurons[j].AdjustWeights(this, neuralData.TargetOutput[j], neuralData, Math.Pow(neuralData.ActualOutput[j] - neuralData.TargetOutput[j], 2));
                             }
                         }
-                        //This attempts to fire all nodes in the current layer,
-                        //Fireing nodes checks if the sum of the weighted inputs is larger than the threshold, then sets ouput to zero or one
-                        layer.FireNodes();
+                        Console.WriteLine("New error: {0}", Math.Round(neuralData.CalculateError(), 3));
+                        neuralData.PrintActual();
                     }
+                    Console.WriteLine("");
+                }
+            }
+
+            //Generate the input and target output
+            private NeuralData GenerateTrainingData(Random rand)
+            {
+                NeuralData neuralData = new NeuralData();
+
+                //Randomly generate the inputs
+                for (int j = 0; j < Globals.XmlData.Inputs; j++)
+                {
+                    neuralData.Input.Add(rand.Next(0, 2));
                 }
 
-                //Print the output nodes
-                string outString = "";
-                foreach (Neuron neuron in NeuralLayers.Last().Neurons)  //for each neuron in output layer
+                //Randomly generate target outputs
+                for (int j = 0; j < Globals.XmlData.Outputs; j++)
                 {
-                    if (neuron.Output > Globals.XmlData.Threshold)
+                    neuralData.TargetOutput.Add(rand.Next(0, 2));
+                }
+
+                return neuralData;
+            }
+
+            public NeuralData CalculateOutputs(NeuralData neuralData)
+            {
+                //Assign the inputs to the first layer.
+                for (int neuron = 0; neuron < NeuralLayers[0].Neurons.Count; neuron++)
+                {
+                    NeuralLayers[0].Neurons[neuron].Output = neuralData.Input[neuron];
+                }
+
+                //Attempt to fire all nodes. Skip the first layer. This will get out actual output
+                bool FirstLayer = true;
+                foreach (NeuralLayer neuralLayer in NeuralLayers)
+                {
+                    if (FirstLayer)
                     {
-                        outString = outString + 1;
+                        FirstLayer = false;
                     }
                     else
                     {
-                        outString = outString + 0;
+                        neuralLayer.FireNodes();
                     }
                 }
-                Console.WriteLine(outString);
+
+                neuralData.ActualOutput.Clear();  //Need to clear the list, we will call this function multiple times
+                //Fetch the actual output
+                foreach (Neuron neuron in NeuralLayers.Last().Neurons)
+                {
+                    if (neuron.Output > 0)
+                    {   //If the neuron fired.
+                        neuralData.ActualOutput.Add(neuron.Output);
+                    }
+                    else
+                    {   //The neuron didn't fire.
+                        neuralData.ActualOutput.Add(0);
+                    }
+                }
+
+                return neuralData;
             }
         }
 
-            static public void BuildNN()
+        public static void NNMain()
+        {
+            NeuralNetwork neuralNetwork = new NeuralNetwork();
+            Random rand = new Random();
+            for (int i = 0; i < Globals.XmlData.Layers; i++)
             {
-                NeuralNetwork network = new NeuralNetwork();
-                network.NeuralLayers.Add(new NeuralLayer(4, 0));
-                network.NeuralLayers.Add(new NeuralLayer(3, 1));
-
-                network.BuildNetwork();
-                Console.WriteLine("Begin training.");
-                network.Train(100, 0.1);
-                Console.WriteLine("Done training.");
-                Console.WriteLine("Enter 4 different numbers, must be 1 or 0. Press enter after each number");
-                while (true)
-                {
-                    NeuralData data = new NeuralData();
-                    List<int> input = new List<int>();
-                    for (int i = 0; i < 4; i++)
-                    {
-                        try
-                        {
-                            input.Add(new int());
-                            input[i] = Convert.ToInt32(Console.ReadLine());
-                            if (input[i] != 0)
-                            {
-                                input[i] = 1;
-                            }
-                        }
-                        catch
-                        {
-                            Console.WriteLine("Inproper input, press enter to exit.");
-                            Console.ReadLine();
-                            Environment.Exit(0);
-                        }
-                    }
-                    data.AddInputs(input);
-                    network.NormalInput(data);
-                    Console.WriteLine("Enter another input.");
+                if (i == 0)
+                {   //The first layer has a set number of inputs
+                    neuralNetwork.NeuralLayers.Add(new NeuralLayer(Globals.XmlData.Inputs, i));
+                }
+                else if (i == Globals.XmlData.Layers - 1)
+                {   //The last layer has a set number of outputs
+                    neuralNetwork.NeuralLayers.Add(new NeuralLayer(Globals.XmlData.Outputs, i));
+                }
+                else
+                {   //The rest of the layers can hav a random number of neurons
+                    neuralNetwork.NeuralLayers.Add(new NeuralLayer(rand.Next(Globals.XmlData.Inputs, Globals.XmlData.Outputs + 2), i));
                 }
             }
+
+            neuralNetwork.BuildNetwork();
+            Console.WriteLine("Training Start.");
+            neuralNetwork.Train();
+            Console.WriteLine("Training End.");
+
+            Console.ReadLine();
         }
     }
+}

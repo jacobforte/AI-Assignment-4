@@ -4,4 +4,5 @@
   <NumberOfCentroids>3</NumberOfCentroids>
   <Width>10</Width>
   <Height>10</Height>
+  <Threshold>4</Threshold>
 </root>

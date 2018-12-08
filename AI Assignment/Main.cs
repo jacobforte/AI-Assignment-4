@@ -20,7 +20,7 @@ namespace AI_Assignment
             }
             else if (input == "2")
             {
-                NN.BuildNN();
+                NN.NNMain();
             }
             else if (input == "3")
             {
