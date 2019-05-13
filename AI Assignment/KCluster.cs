@@ -49,13 +49,9 @@ namespace AI_Assignment
                     Environment.Exit(0);
                 }
             }
-
-            public void PrintXMLData()
-            {
-                Console.WriteLine("Number of nodes: {0}, number of centroids: {1}, Width: {2}, Height: {3}", NumberOfNodes, NumberOfCentroids, Width, Height);
-            }
         }
 
+        //Contains data about a single point on a graph.
         private class Node
         {
             public int xpos, ypos;      //Position on the graph
@@ -76,7 +72,7 @@ namespace AI_Assignment
                 //Loop through all centroids
                 foreach (Centroid NewCentroid in newCentroids)
                 {
-                    //calculate distance to new centrodi
+                    //calculate distance to new centrod
                     double distanceToNewCentroid = Math.Sqrt(Math.Pow(NewCentroid.Xpos - xpos, 2) + Math.Pow(NewCentroid.Ypos - ypos, 2));
 
                     if (centroid == null && distanceToNewCentroid <= Globals.XmlData.Threshold)
@@ -99,6 +95,7 @@ namespace AI_Assignment
             }
         }
 
+        //Contains data about a single centroid, centroids are used to form groups of nodes and represents to average position of the nodes
         private class Centroid
         {
             public List<Node> nodes;    //Nodes that belong to this centroid
@@ -122,7 +119,7 @@ namespace AI_Assignment
                 Ypos = y;
             }
 
-            //This repositions this centroids, by calculating the average x and y values that belong to this centroid
+            //This repositions this centroid, by calculating the average x and y values that belong to this centroid
             //Returns ture if the position changed, else false
             public bool Reposition()
             {
@@ -151,6 +148,7 @@ namespace AI_Assignment
             }
         }
 
+        //contains data about the whole graph, including all nodes and centroids
         private class Graph
         {
             int width, heigth, numberOfNodes, numberOfCentroids;
@@ -175,7 +173,7 @@ namespace AI_Assignment
                     nodes.Add(new Node(rand.Next(width + 1), rand.Next(heigth + 1)));
                 }
 
-                //randomly generate our centroids
+                //randomly generate our initial centroids
                 for (int i = 0; i < numberOfCentroids; i++)
                 {
                     //Set the new centroid to a random node within the grid
@@ -256,6 +254,7 @@ namespace AI_Assignment
             }
         }
 
+        //This is the "main" function for K-Means Clustering
         static public void KClusterMain()
         {
             Graph graph = new Graph();

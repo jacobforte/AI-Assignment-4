@@ -49,13 +49,9 @@ namespace AI_Assignment
                     Environment.Exit(0);
                 }
             }
-
-            public void PrintXMLData()
-            {
-                
-            }
         }
 
+        //Contains data about a single point on a graph
         class Node
         {
             public int xpos, ypos;
@@ -67,6 +63,7 @@ namespace AI_Assignment
             }
         }
 
+        //Contains all data of the grap, including all of the nodes
         class Graph
         {
             private List<Node> nodes;
@@ -101,6 +98,7 @@ namespace AI_Assignment
                 Console.WriteLine("The optimum line is {0}X + {1}", Math.Round(slope, 3), Math.Round(constant, 3));   //aX + b
             }
 
+            //Calculate the optimum line given the list of nodes from LRASettings.xml
             private void CalculateOptimumLine()
             {
                 double XSampleMean = 0, XStandardDeviation = 0, YSampleMean = 0; //YStandardDeviation = 0;
@@ -141,6 +139,7 @@ namespace AI_Assignment
             }
         }
 
+        //This function is the "Main" Linear regression analysis
         static public void LRAMain()
         {
             Graph graph = new Graph();

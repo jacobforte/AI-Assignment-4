@@ -9,6 +9,7 @@ namespace AI_Assignment
 {
     class HMM
     {
+        //Contains data about a path from one node to another node, each path only trravels in one direction
         class Path
         {
             public List<int> transitionSequence;    //The states are zero indexed
@@ -104,6 +105,8 @@ namespace AI_Assignment
                     Console.WriteLine("Oops, that string wasn't a number. Please try again.");
                 }
             } while (temp != 0);
+
+            //If there areno obserations, end the program
             if (observations.Count < 1)
             {
                 Console.WriteLine("No observations entered, press enter to exit.");
@@ -115,19 +118,6 @@ namespace AI_Assignment
             List<Path> paths = new List<Path>();
             paths.Add(new Path(0));  //Initalize a path object
             FindNextState(transitionMatrix, emissionMatrix, observations, numberOfStates, paths);
-
-            //DEBUGING Use this to show all paths that were generated
-            //foreach (Path path in paths)
-            //{
-            //    string output = "";
-            //    foreach (int state in path.transitionSequence)
-            //    {
-            //        temp = state + 1;
-            //        output = output + temp + " ";
-            //    }
-            //    Console.WriteLine(output);
-            //}
-            //Console.ReadLine();
 
             //We have our list of paths, we now need to calculate every probability and pick the best one.
             for (int path = 0; path < paths.Count; path++)
@@ -151,12 +141,18 @@ namespace AI_Assignment
             }
 
             //DEBUGING Use this to show all the calculated probabilities
-            //foreach (Path path in paths)
-            //{
-            //    double output = path.probability;
-            //    Console.WriteLine(output);
-            //}
-            //Console.ReadLine();
+            foreach (Path path in paths)
+            {
+                string output = "";
+                foreach (int state in path.transitionSequence)
+                {
+                    temp = state + 1;
+                    output = output + temp + " ";
+                }
+
+                output = output + path.probability;
+                Console.WriteLine(output);
+            }
 
             //Find the most probable path.
             Path mostProbablePath = new Path(0);
